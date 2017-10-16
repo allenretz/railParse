@@ -1,6 +1,3 @@
-#Allen Retzler
-#Mar 11, 2017
-
 """
 Name:    RailParser
 Author:  Allen Retzler
