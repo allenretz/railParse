@@ -26,12 +26,8 @@ class Once:
     def exact(self, stringToMatch):
         """returns True if the entire string matches the rule and no other substrings starting at zero match."""
         return Min(self.rule).match(stringToMatch)
-    def exactMatch(self, stringToMatch):
-        __doc__ = self.exact.__doc__
-        return exact(stringToMatch)
-    def exactlyMatches(self, stringToMatch):
-        __doc__ = self.exact.__doc__
-        return exact(stringToMatch)
+    exactMatch = exact
+    exactlyMatches = exact
 
 
 
