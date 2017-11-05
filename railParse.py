@@ -2,7 +2,7 @@
 Name:    RailParser
 Author:  Allen Retzler
 Date:    Apr 11, 2017
-Updated: Oct 15, 2017
+Updated: NOV 5,  2017
 """
 
 
@@ -18,9 +18,24 @@ class Once:
         """returns True if the entire string matches"""
         return len(stringToMatch) in self.parse(stringToMatch)
     def matches(self, stringToMatch):
-        """Alias for match"""
-        return self.matches(stringToMatch)
-        
+        __doc__ = Once.match.__doc__
+        return self.match(stringToMatch)
+
+
+
+    def exact(self, stringToMatch):
+        """returns True if the entire string matches the rule and no other substrings starting at zero match."""
+        return Min(self.rule).match(stringToMatch)
+    def exactMatch(self, stringToMatch):
+        __doc__ = self.exact.__doc__
+        return exact(stringToMatch)
+    def exactlyMatches(self, stringToMatch):
+        __doc__ = self.exact.__doc__
+        return exact(stringToMatch)
+
+
+
+
     def parse(self, stringToParse, startingPoints = set([0])):
         if type(self.rule) == type(""):
             newPoints = set()
@@ -31,42 +46,86 @@ class Once:
         else:
             return self.rule.parse(stringToParse, startingPoints)
 
-class One(Once):
-    """Alias for Once"""
-    pass
-O
 
-class Chain(Once):
-    """A Chain of rules that have to be matched in order"""
+
+
+
+    def __eq__(self, ruleOrString):
+        raise NotImplemented("Not Yet Implemented")
+    def __ne__(self, ruleOrString):
+        return not __eq__(ruleOrString)
+    def __add__(self, ruleOrString):
+        if type(self) == type(Sequence()):
+            if type(ruleOrString) == type(Sequence()):
+                return(Sequence(*self.rules, *ruleOrString.rules))
+            else:
+                return(Sequence(*self.rules, ruleOrString))
+        else:
+            if type(ruleOrString) == type(Sequence()):
+                return(Sequence(self, *ruleOrString.rules))
+            else:
+                return(Sequence(self, ruleOrString))
+    def __radd__(self, ruleOrString):
+        if type(self) == type(Sequence()):
+            if type(ruleOrString) == type(Sequence()):
+                return(Sequence(*ruleOrString.rules, *self.rules))
+            else:
+                return(Sequence(ruleOrString, *self.rules))
+        else:
+            if type(ruleOrString) == type(Sequence()):
+                return(Sequence(*ruleOrString.rules, self))
+            else:
+                return(Sequence(ruleOrString, self))
+        
+    def __or__(self, ruleOrString):
+        if type(self) == type(Or()):
+            if type(ruleOrString) == type(Or()):
+                return(Or(*self.rules, *ruleOrString.rules))
+            else:
+                return(Or(*self.rules, ruleOrString))
+        else:
+            if type(ruleOrString) == type(Or()):
+                return(Or(self, *ruleOrString.rules))
+            else:
+                return(Or(self, ruleOrString))
+
+    __and__  = __add__
+    __rand__ = __radd__
+    __ror__  = __or__    
+
+        
+One =Once
+
+
+
+class Sequence(Once):
+    """A set of rules that have to be matched in order"""
     def __init__(self, *rules):
-        self.chain = [Once(x) for x in  rules]
+        self.rules = [Once(x) for x in  rules]
 
     def parse(self,stringToParse, startingPoints = set([0])):
-        for i in self.chain:
+        for i in self.rules:
             startingPoints = i.parse(stringToParse, startingPoints)
         return startingPoints
-class Sequence(Chain):
-    """Alias for Chain"""
-    pass
-class And(Chain):
-    """Alias for Chain"""
-    pass
+Chain = Sequence
+And = Sequence
+
 
 
 class Or(Once):
     """A set of rules where atleast one choice has to match"""
+    #TODO Run Equivalence Checks Before storing the rules
     def __init__(self, *rules):
-        self.options = [Once(x) for x in  rules]
+        self.rules = [Once(x) for x in  rules]
         
     def parse(self,stringToParse, startingPoints = set([0])):
         newPoints =set()
         
-        for i in self.options:
+        for i in self.rules:
             newPoints |= i.parse(stringToParse, startingPoints)
         return newPoints
-class Choice(Or):
-    """Alias for Or"""
-    pass
+Choice = Or
+
 
 
 class Optional(Once):
@@ -74,11 +133,10 @@ class Optional(Once):
     def __init__(self, rule):
         self.rule = Once(rule)
     def parse(self,stringToParse, startingPoints = set([0])):
-        return Or("", self.rule).parse(stringToParse, startingPoints)
-    
-class ZeroOrOne(Optional):
-    """Alias for Optional"""
-    pass
+        return Or("", self.rule).parse(stringToParse, startingPoints)    
+ZeroOrOne = Optional
+
+
     
 class OneOrMore(Once):
     """A rule that is matches 1 or more times. If more than once, joinRule is required between each match"""
@@ -95,6 +153,8 @@ class OneOrMore(Once):
             
         return newPoints
 
+
+
 class ZeroOrMore(Once):
     """A rule that matches 0 or more times. If more than once, joinRule is required between each match"""
     def __init__(self, rule, joinRule = ""):
@@ -103,6 +163,8 @@ class ZeroOrMore(Once):
 
     def parse(self,stringToParse, startingPoints = set([0])):
         return Or("", OneOrMore(self.rule, self.join)).parse(stringToParse, startingPoints)
+
+
 
 class Next(Once):
     """'Positive Look Ahead' -- A rule that checks the next characters and determines if it matches"""
@@ -114,9 +176,9 @@ class Next(Once):
             if self.rule.parse(stringToParse, set([start])) != set():
                 newPoints.add(start)
         return newPoints
-class LookAhead(Next):
-    """Alias for Next"""
-    pass
+LookAhead = Next
+
+
 
 class NotNext(Once):
     """'Negative Look Ahead' -- A rule that checks the next characters in the string and determines if it doesn't match"""
@@ -129,28 +191,35 @@ class NotNext(Once):
                 newPoints.add(start)
         return newPoints
 
-class Previous(Once): #TODO FIX
+
+
+class Previous(Once): #TODO FIX ????( Not Sure If This Needs Fixing)
     """'Positive Look Behind' -- starts at the beginning and removes previous matches that don't match this"""
     def __init__(self, rule):
         self.rule = Once(rule)
     def parse(self, stringToParse, startingPoints = set([0])):
-        return( startingPoints & Sequence(ZeroOrMore(wild), self.rule).parse(stringToParse) )
-    
-class LookBehind(Previous):
-    """Alias for Previous"""
-    pass
+        return( startingPoints & Sequence(ZeroOrMore(wild), self.rule).parse(stringToParse) )    
+LookBehind = Previous
+
+
+
 class NotPrevious(Once): 
     """'Negative Look Behind' -- starts at the beginning and removes previous matches that also match this"""
     def __init__(self, rule):
         self.rule = Once(rule)
     def parse(self, stringToParse, startingPoints = set([0])):
         return( startingPoints - Sequence(ZeroOrMore(wild), self.rule).parse(stringToParse) )
-class FindStart(Once): #Replace with IN
+
+
+    
+class FindStart(Once):
     """If a rule matches any substring(s) of the text, all possible starting points will be returned"""
     def __init__(self, rule):
         self.rule = Once(rule)
     def parse(self,stringToParse, startingPoints = set([0])):
         return Chain(ZeroOrMore(wild), Next(self.rule)).parse(stringToParse)
+
+
         
 class FindEnd(Once): #TODO CHECK
     """If a rule matches any substring(s) of the text, all possible ending points will be returned"""
@@ -159,26 +228,26 @@ class FindEnd(Once): #TODO CHECK
     def parse(self,stringToParse, startingPoints = set([0])):
         return Chain(ZeroOrMore(wild), self.rule).parse(stringToParse)
 
+
+
     
 class Min(Once):
-    """'lazy' - get the smallest (earliest) match"""
+    """'lazy' - get the ending point of the earliest match. DIFFERENT FROM REGEX"""
     def __init__(self, rule=""):
         self.rule = Once(rule)
     def parse(self,stringToParse, startingPoints = set([0])):
         return set([min(self.rule.parse(stringToParse, startingPoints))])
-class Lazy(Min):
-    """Alias for Min"""
-    pass
+Lazy = Min
+
+
 
 class Max(Once):
-    """'greedy' - Get the largest (latest) startingPoint"""
+    """'greedy' - Get the ending point of the latest match. DIFFERENT FROM REGEX"""
     def __init__(self, rule=""):
         self.rule = Once(rule)
     def parse(self,stringToParse, startingPoints = set([0])):
         return set([max(self.rule.parse(stringToParse, startingPoints))])
-class Greedy(Max):
-    """Alias for Max"""
-    pass
+Greedy = Max
     
     
 
