@@ -9,14 +9,20 @@ This is an alternative to regex with the goal being human readability / comprehe
    * matches(stringToMatch) - alias for match
 ### Example
 ```python
-Sequence("abc", "d", Or(" ", "e"), "f").match("abcdef") // True
-Sequence("abc", "d", Or(" ", "e"), "f").match("abcd f") // True
-Sequence("abc", "d", Or(" ", "e"), "f").match("abcd!f") // False
-Sequence("abc", "d", Or(" ", "e"), "f").match("abcd")   // False
 
-Sequence("abc", "d", Or(" ", "e"), "f").parse("abcdef") // {6}
-Sequence("abc", "d", Or(" ", "e"), "f").parse("abc")    // set()
-Or("a", "ab").parse("ab")                               // {1, 2}
+# .match() or .matches returns True / False based on if the entire
+# string matches the rules
+Sequence("abc", "d", Or(" ", "e"), "f").match("abcdef") #True
+Sequence("abc", "d", Or(" ", "e"), "f").match("abcd f") #True
+Sequence("abc", "d", Or(" ", "e"), "f").match("abcd!f") #False
+Sequence("abc", "d", Or(" ", "e"), "f").match("abcd")   #False
+
+# .parse() returns a set of all possible ending points that match
+# the string when starting from the beginning
+Sequence("abc", "d", Or(" ", "e"), "f").parse("abcdef") #{6}        #"abcdef" can be found once in "abcdef"
+Sequence("abc", "d", Or(" ", "e"), "f").parse("abc")    #set()      #Empty set, neither "abcdef" nor "abcd f"
+                                                                    #can be found in "abc"
+Or("a", "ab").parse("ab")                               #{1, 2}     #both "a" and "ab" can be found in "ab"
 ```
 ### Rules
 * Once(rule) - mostly used internally. It checks if a string matches the rule
