@@ -30,7 +30,7 @@ This is an alternative to regex with the goal being human readability / comprehe
    * \_\_and\_\_(ruleOrString)
    * \_\_iadd\_\_(ruleOrString)
    * \_\_iand\_\_(ruleOrString)
-   * +
+   * \+
    * &
    * +=
    * &=
