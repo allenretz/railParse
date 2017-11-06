@@ -17,6 +17,9 @@ Matching rules have multiple functions
 * exactMatch(stringToMatch)
 * exactlyMatches(stringToMatch)
 <br>&nbsp;&nbsp;&nbsp;&nbsp;returns True if the entire string matches the rule and no other substrings starting at zero match.
+
+* toRegex(outputType="Regex")
+<br>&nbsp;&nbsp;&nbsp;&nbsp;Converts the parserule to a regex.Pattern or String
    
 ## Comparisons
    * == 
