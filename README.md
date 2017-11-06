@@ -22,15 +22,17 @@ Matching rules have multiple functions
    * == 
      <br>&nbsp;&nbsp;&nbsp;&nbsp;True if the ruleOrString will always yield the same result as the rule when .parse() is called no matter what string is passed to .parse(). If ruleOrString is a string, it will be treated as Sequence(ruleOrString).
    * != 
-   <br>&nbsp;&nbsp;&nbsp;&nbsp;True if the ruleOrString will not always yield the same result as the rule when .parse() is called no matter what string is passed to .parse(). If ruleOrString is a string, it will be treated as Sequence(ruleOrString).
+   <br>&nbsp;&nbsp;&nbsp;&nbsp;Opposite of ==.
    
    
 ## Operators  
    * \+
-   * &
    * +=
-   * &=
    <br>&nbsp;&nbsp;&nbsp;&nbsp;creates a new Sequence() of the original and the ruleOrString
+   
+   * &
+   * &=
+   <br>&nbsp;&nbsp;&nbsp;&nbsp;creates a new And() of the original and the ruleOrString
    
    * |
    * |=
@@ -63,8 +65,13 @@ Or("a", "ab").parse("ab")                               #{1, 2}     #both "a" an
 
 * Chain(\*rules)
 * Sequence(\*rules)
-* And(\*rules)
 <br>&nbsp;&nbsp;&nbsp;&nbsp;A set of rules that have to all be matched in order.
+
+
+
+* And(\*rules)
+<br>&nbsp;&nbsp;&nbsp;&nbsp;A set of rules that all have to match in order for characters to be added.
+
 
 
 * Or(\*rules)
@@ -99,14 +106,14 @@ Or("a", "ab").parse("ab")                               #{1, 2}     #both "a" an
 <br>&nbsp;&nbsp;&nbsp;&nbsp;"Positive Look Behind" - starts at every point prior to the starting points and checks that from one atleast one of those points the starting point can be reached by following the rule.
 
 
-* Min(rule) - matches only the first (smallest) match
+* Min(rule)
 * Lazy(rule)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;
+<br>&nbsp;&nbsp;&nbsp;&nbsp;matches only the first (smallest) match
 
 
-* Max(rule) - matches only the last (largest) match
+* Max(rule)
 * Greedy(rule)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;
+<br>&nbsp;&nbsp;&nbsp;&nbsp;matches only the last (largest) match
 
 
 * Not - TODO (INCOMPLETE)
@@ -120,16 +127,33 @@ Or("a", "ab").parse("ab")                               #{1, 2}     #both "a" an
 * FindEnd
 <br>&nbsp;&nbsp;&nbsp;&nbsp;
 ### Special (Predefined) Cases - TODO (INCOMPLETE)
-* newline
 * nl
-* whitespacechar
+* nL
+* newline
+* newLine
+<br>&nbsp;&nbsp;&nbsp;&nbsp;matches a single newline character
 * wsc
-* whitespace
-* ws
-* upper
+* wSC
+* whiteSpaceChar
+* whitespacechar
+<br>&nbsp;&nbsp;&nbsp;&nbsp;matches a single whitespacecharacter character
 * lower
+* lowercase
+<br>&nbsp;&nbsp;&nbsp;&nbsp;matches a single lowercase character
 * alpha
+<br>&nbsp;&nbsp;&nbsp;&nbsp;matches a single alphabetical character
 * alnum
+* alphaNum
+* alphanum
+<br>&nbsp;&nbsp;&nbsp;&nbsp;matches a single alphanumeric character
 * digit
-* wild
+* num
+<br>&nbsp;&nbsp;&nbsp;&nbsp;matches a single numeric character (digit)
+* wildChar
+* wildchar
+* wildCard
+* wildcard
+* wildCardChar
+* wildcardchar
+<br>&nbsp;&nbsp;&nbsp;&nbsp;matches any single character
 * exclude(charsToExlcude)
