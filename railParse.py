@@ -12,6 +12,7 @@ class Once:
     """Matches the rule exactly once
        This is the base Parse Rule and
        is called and inherrited by others"""
+    #TODO: Allow Regex and File input as well
     def __init__(self, rule):
         self.rule = rule
     def match(self, stringToMatch):
@@ -22,7 +23,7 @@ class Once:
 
 
     def exact(self, stringToMatch):
-        """returns True if the entire string matches the rule and no other substrings starting at zero match."""
+        """returns True if the entire string matches the rule and no other substrings (starting at zero) also matches."""
         return Min(self.rule).match(stringToMatch)
     exactMatch = exact
     exactlyMatches = exact
@@ -39,6 +40,18 @@ class Once:
             return newPoints;
         else:
             return self.rule.parse(stringToParse, startingPoints)
+
+
+    def in(self, stringToFind):
+        raise NotImplemented
+    def findStart(self, stringToFind, startingPoint =0, endingPoint =-1):
+        raise NotImplemented
+    def findEnd(self, stringToFind, startingPoint =0, endingPoint =-1):
+        raise NotImplemented
+
+    def toRegex(outputType = "Regex"):
+        """Converts the parserule to a regex.Pattern or String"""
+        raise NotImplemented("Not Yet Implemted")
 
 
 
@@ -70,6 +83,8 @@ class Once:
                 return(Sequence(*ruleOrString.rules, self))
             else:
                 return(Sequence(ruleOrString, self))
+    def __and__(self, ruleOrString):
+        raise NotImplemented
         
     def __or__(self, ruleOrString):
         if type(self) == type(Or()):
@@ -83,12 +98,11 @@ class Once:
             else:
                 return(Or(self, ruleOrString))
 
-    __and__  = __add__
-    __rand__ = __radd__
+    __rand__ = __and__
     __ror__  = __or__    
 
         
-One =Once
+One = Once
 
 
 
@@ -102,8 +116,11 @@ class Sequence(Once):
             startingPoints = i.parse(stringToParse, startingPoints)
         return startingPoints
 Chain = Sequence
-And = Sequence
 
+
+class And(Once):
+    """A set of rules that all have to match in order for characters to be added"""
+    raise NotImplemented("Not Yet Implemented")
 
 
 class Or(Once):
@@ -247,91 +264,77 @@ Greedy = Max
 
 
 ## Special Predefined Classes
-class newline:
-    def matches(stringToMatch):
-        """Returns True if the string is a single newline character"""
-        return len(stringToMatch) in newline.parse(stringToMatch)
-    def match(stringToMatch):
-        """Alias for matches"""
-        return newline.matches(stringToParse)
-    def parse(stringToParse, startingPoints = set([0])):
-        """matches a single newline character"""
-        newPoints = set([])
-        for start in startingPoints:
-            if start < len(stringToParse) and stringToParse[start] == "\n" :
-                newPoints.add( start + 1 )
-        return newPoints
+newLine = Once("\n")
+newline = newLine
+nL      = newLine
+nl      = newLine
 
 
-class wsc:
-    def matches(stringToMatch):
-        """returns True if the string is a single whitespace character"""
-        return True if len(stringToMatch) == 0 and stringToMatch.isspace() else False
-    def match(stringToParse):
-        """Alias for matches"""
-        return wsc.matches(stringToParse)
+
+class wsc(Once):
     def parse(stringToParse, startingPoints = set([0])):
         newPoints = set([])
         for start in startingPoints:
             if start < len(stringToParse) and stringToParse[start].isspace():
                 newPoints.add( start + 1 )
         return newPoints       
+wsc                 = wsc()
+wSC                 = wsc
+whiteSpaceChar      = wsc
+whitespacechar      = wsc
 
-class ws:
-    def matches(stringToParse):
-        """returns True if the string is empty or is a SINGLE LINE contaning all white space"""
-        return len(stringToParse) in ws.parse(stringToParse)
+
+
+class ws(Once):
     def parse(stringToParse, startingPoints = set([0])):
         """matches 0 or more whitespace characters"""
         return ZeroOrMore(wsc).parse(stringToParse, startingPoints)
-class lower:
-    def matches(stringToParse):
-        """returns True if the string is the same when .lower() is run"""
-        return True if stringToParse == stringToParse.lower() else False
-    def match(stringToMatch):
-        """Alias for matches"""
-        return lower.matches()
+ws         = ws()
+wS         = ws
+whiteSpace = ws
+whitespace = ws
+
+
+
+class lower(Once):
     def parse(self,stringToParse, startingPoints = set([0])):
         """matches if the character is the same as the character.lower()"""
-        lowerCase = "abcdefghijklmnopqrstuvwxyz"
         newPoints = set([])
         for start in startingPoints:
-            if start < len(stringToParse) and stringToParse[start] in self.lowerCase:
+            if start < len(stringToParse) and stringToParse[start] == stringToParse[start].lower():
                 newPoints.add( start + 1 )
         return newPoints
-class upper:
-    def __init__(self):
-        self.upperCase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-    def matches(self,stringToParse):
-        return len(stringToParse) in self.parse(stringToParse)
+lower         = lower()
+lowercase     = lower
+class upper(Once):
     def parse(self,stringToParse, startingPoints = set([0])):
         """matches if the character is the same as the character.lower()"""
         newPoints = set([])
         for start in startingPoints:
-            if start < len(stringToParse) and stringToParse[start] in self.upperCase:
+            if start < len(stringToParse) and stringToParse[start] == stringToParse[start].upper():
                 newPoints.add( start + 1 )
         return newPoints
     
         
-class alpha:
-    def matches(self,stringToParse):
-        return len(stringToParse) in self.parse(stringToParse)
+class alpha(Once):
     def parse(self,stringToParse, startingPoints = set([0])):
         newPoints = set([])
         for start in startingPoints:
             if start < len(stringToParse) and stringToParse[start].isalpha():
                 newPoints.add( start + 1 )
         return newPoints
-class alnum:
-    def matches(self,stringToParse):
-        return len(stringToParse) in self.parse(stringToParse)
+alpha = alpha()
+class alnum(Once):
     def parse(self,stringToParse, startingPoints = set([0])):
         newPoints = set([])
         for start in startingPoints:
             if start < len(stringToParse) and stringToParse[start].isalnum():
                 newPoints.add( start + 1 )
         return newPoints
-class digit:
+alnum = alnum()
+alphaNum    = alnum
+alphanum    = alnum
+class digit(Once):
     def matches(self,stringToParse):
         return len(stringToParse) in self.parse(stringToParse)
     def parse(self,stringToParse, startingPoints = set([0])):
@@ -341,13 +344,22 @@ class digit:
                 newPoints.add( start + 1 )
         return newPoints
 
-class wild:
-    def match(stringToMatch):
-        "returns true if the string is a single character"
-        return True if len(stringToMatch) == 1 else False
-    def matches(stringToMatch):
-        "Alias for match"
-        return wild.match(stringToMatch)
+class wildCard(Once):
+    def parse:
+        """matches any single character"""
+        for start in startingPoints:
+            if start < len(stringToParse):
+                newPoints.add( start + 1 )
+        return newPoints
+
+wildCard     = wildCard()
+wildcard     = wildCard
+wildChar     = wildCard
+wildchar     = wildCard
+wildCardChar = wildCard
+wildcardchar = wildCard
+
+
 class exclude:
     def __init__(self, excludeChars=""):
         """exclusive wild card"""
