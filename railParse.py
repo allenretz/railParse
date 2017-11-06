@@ -17,9 +17,7 @@ class Once:
     def match(self, stringToMatch):
         """returns True if the entire string matches"""
         return len(stringToMatch) in self.parse(stringToMatch)
-    def matches(self, stringToMatch):
-        __doc__ = Once.match.__doc__
-        return self.match(stringToMatch)
+    matches = match
 
 
 
@@ -362,6 +360,7 @@ class exclude:
             if start < len(stringToParse) and (stringToParse[start] not in self.exclude):
                 newPoints.add( start + 1 )
         return newPoints
+
 if __name__ == "__main__":
     success  = True
     failedAt = []
