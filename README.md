@@ -126,7 +126,7 @@ Or("a", "ab").parse("ab")                               #{1, 2}     #both "a" an
 
 * FindEnd
 <br>&nbsp;&nbsp;&nbsp;&nbsp;
-### Special (Predefined) Cases - TODO (INCOMPLETE)
+### Special (Predefined) Cases
 * nl
 * nL
 * newline
