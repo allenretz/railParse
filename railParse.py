@@ -6,40 +6,42 @@ Updated: NOV 5,  2017
 """
 
 
-def simplify(rule): # TODO: simplify the parseRule
+def simplify(rule): # TODO: simplify the ParseRule
     ptr = rule
     ptrIsSimple = True
     """Simplify the parse rule"""
     while type(ptr) != type(""):
-        if type(ptr) == type(Once()):
+        if type(ptr) == type(ParseRule()):
             ptr = ptr.rule
         if type(ptr) == type(Sequence()):
             ptrIsSimple = False
             
-    return Once(ptr)
+    return ParseRule(ptr)
 
 ## TODO: \/\/\/\/\/
 ## TODO:  \/\/\/\/
-## TODO:   DON'T CALL ONCE FOR EVERY SINGLE CALL !!!!
+## TODO:   DON'T CALL ParseRule FOR EVERY SINGLE CALL !!!!
 ## TODO:  /\/\/\/\
 ## TODO: /\/\/\/\/\
 
 ## MATCHING RULES
-class Once:
-    """Matches the rule exactly once
+
+class ParseRule:
+    """Matches the rule exactly ParseRule
        This is the base Parse Rule and
        is called and inherrited by others"""
     #TODO: Allow Regex and File input as well
     def __init__(self, rule=""):
+            self.parseType = "Once"
             self.rule = rule
     def __str__(self):
         try:
             if type(self.rule) == type(""):
-                return type(self).__name__ + "(\""+ str(self.rule) + "\")"
+                return self.parseType + "(\""+ str(self.rule) + "\")"
             else:
-                return type(self).__name__ + "("+ str(self.rule) + ")"
+                return self.parseType + "(\n"+ str(self.rule) + "\n)"
         except AttributeError:
-            return type(self).__name__ + "("+ str(",".join(["\""+str(x)+"\"" if type(x) == type("") else str(x) for x in self.rules])) + ")"
+            return self.parseType + "("+ str(",".join(["\""+str(x)+"\"" if type(x) == type("") else str(x) for x in self.rules])) + ")"
     def match(self, stringToMatch):
         """returns True if the entire string matches"""
         return len(stringToMatch) in self.parse(stringToMatch)
@@ -76,7 +78,7 @@ class Once:
         raise NotImplemented
 
     def toRegex(outputType = "Regex"):
-        """Converts the parserule to a regex.Pattern or String"""
+        """Converts the ParseRule to a regex.Pattern or String"""
         raise NotImplemented("Not Yet Implemted")
 
 
@@ -135,33 +137,40 @@ class Once:
     __rand__ = __and__
     __ror__  = __or__    
 
+
+def Once(rule=""):
+    return ParseRule(rule)
         
-One = Once
+One = Once()
 
 
 
-class Sequence(Once):
+def Sequence(*rules):
     """A set of rules that have to be matched in order"""
-    def __init__(self, *rules):
-        self.rules = [Once(x) if type(x) == type("") else x for x in  rules]
+    self = ParseRule()
+    self.parseType = "Sequence"
+    del self.rule
+    self.rules = [ParseRule(x) if type(x) == type("") else x for x in  rules]
 
-    def parse(self,stringToParse, startingPoints = set([0])):
+    def parse(stringToParse, startingPoints = set([0])):
         for i in self.rules:
             startingPoints = i.parse(stringToParse, startingPoints)
         return startingPoints
+    self.parse = parse
+    return self
 Chain = Sequence
 
 
-#class And(Once):
+#class And(ParseRule):
 #    """A set of rules that all have to match in order for characters to be added"""
 #    raise NotImplemented("Not Yet Implemented")
 
 
-class Or(Once):
+class Or(ParseRule):
     """A set of rules where atleast one choice has to match"""
     #TODO Run Equivalence Checks Before storing the rules
     def __init__(self, *rules):
-        self.rules = [Once(x) for x in  rules]
+        self.rules = [ParseRule(x) for x in  rules]
         
     def parse(self,stringToParse, startingPoints = set([0])):
         newPoints =set()
@@ -173,21 +182,21 @@ Choice = Or
 
 
 
-class Optional(Once):
+class Optional(ParseRule):
     """A rule that is optional (matches 0 or 1 time)"""
     def __init__(self, rule):
-        self.rule = Once(rule) if type(rule) == type("") else rule
+        self.rule = ParseRule(rule) if type(rule) == type("") else rule
     def parse(self,stringToParse, startingPoints = set([0])):
         return Or("", self.rule).parse(stringToParse, startingPoints)    
 ZeroOrOne = Optional
 
 
     
-class OneOrMore(Once):
-    """A rule that is matches 1 or more times. If more than once, joinRule is required between each match"""
+class OneOrMore(ParseRule):
+    """A rule that is matches 1 or more times. If more than ParseRule, joinRule is required between each match"""
     def __init__(self, rule, joinRule = ""):
-        self.rule = Once(rule)
-        self.join = Once(joinRule)
+        self.rule = ParseRule(rule)
+        self.join = ParseRule(joinRule)
 
     def parse(self,stringToParse, startingPoints = set([0])):
         startingPoints = self.rule.parse(stringToParse, startingPoints)
@@ -200,21 +209,21 @@ class OneOrMore(Once):
 
 
 
-class ZeroOrMore(Once):
-    """A rule that matches 0 or more times. If more than once, joinRule is required between each match"""
+class ZeroOrMore(ParseRule):
+    """A rule that matches 0 or more times. If more than ParseRule, joinRule is required between each match"""
     def __init__(self, rule, joinRule = ""):
-        self.rule = Once(rule)
-        self.join = Once(joinRule)
+        self.rule = ParseRule(rule)
+        self.join = ParseRule(joinRule)
 
     def parse(self,stringToParse, startingPoints = set([0])):
         return Or("", OneOrMore(self.rule, self.join)).parse(stringToParse, startingPoints)
 
 
 
-class Next(Once):
+class Next(ParseRule):
     """'Positive Look Ahead' -- A rule that checks the next characters and determines if it matches"""
     def __init__(self, rule):
-        self.rule = Once(rule)
+        self.rule = ParseRule(rule)
     def parse(self,stringToParse, startingPoints = set([0])):
         newPoints = set()
         for start in startingPoints:
@@ -225,10 +234,10 @@ LookAhead = Next
 
 
 
-class NotNext(Once):
+class NotNext(ParseRule):
     """'Negative Look Ahead' -- A rule that checks the next characters in the string and determines if it doesn't match"""
     def __init__(self, rule):
-        self.rule = Once(rule)
+        self.rule = ParseRule(rule)
     def parse(self,stringToParse, startingPoints = set([0])):
         newPoints = set()
         for start in startingPoints:
@@ -238,58 +247,58 @@ class NotNext(Once):
 
 
 
-class Previous(Once): #TODO FIX ????( Not Sure If This Needs Fixing)
+class Previous(ParseRule): #TODO FIX ????( Not Sure If This Needs Fixing)
     """'Positive Look Behind' -- starts at the beginning and removes previous matches that don't match this"""
     def __init__(self, rule):
-        self.rule = Once(rule)
+        self.rule = ParseRule(rule)
     def parse(self, stringToParse, startingPoints = set([0])):
         return( startingPoints & Sequence(ZeroOrMore(wild), self.rule).parse(stringToParse) )    
 LookBehind = Previous
 
 
 
-class NotPrevious(Once): 
+class NotPrevious(ParseRule): 
     """'Negative Look Behind' -- starts at the beginning and removes previous matches that also match this"""
     def __init__(self, rule):
-        self.rule = Once(rule)
+        self.rule = ParseRule(rule)
     def parse(self, stringToParse, startingPoints = set([0])):
         return( startingPoints - Sequence(ZeroOrMore(wild), self.rule).parse(stringToParse) )
 
 
     
-class FindStart(Once):
+class FindStart(ParseRule):
     """If a rule matches any substring(s) of the text, all possible starting points will be returned"""
     def __init__(self, rule):
-        self.rule = Once(rule)
+        self.rule = ParseRule(rule)
     def parse(self,stringToParse, startingPoints = set([0])):
         return Chain(ZeroOrMore(wild), Next(self.rule)).parse(stringToParse)
 
 
         
-class FindEnd(Once): #TODO CHECK
+class FindEnd(ParseRule): #TODO CHECK
     """If a rule matches any substring(s) of the text, all possible ending points will be returned"""
     def __init__(self, rule):
-        self.rule = Once(rule)
+        self.rule = ParseRule(rule)
     def parse(self,stringToParse, startingPoints = set([0])):
         return Chain(ZeroOrMore(wild), self.rule).parse(stringToParse)
 
 
 
     
-class Min(Once):
+class Min(ParseRule):
     """'lazy' - get the ending point of the earliest match. DIFFERENT FROM REGEX"""
     def __init__(self, rule=""):
-        self.rule = Once(rule)
+        self.rule = ParseRule(rule)
     def parse(self,stringToParse, startingPoints = set([0])):
         return set([min(self.rule.parse(stringToParse, startingPoints))])
 Lazy = Min
 
 
 
-class Max(Once):
+class Max(ParseRule):
     """'greedy' - Get the ending point of the latest match. DIFFERENT FROM REGEX"""
     def __init__(self, rule=""):
-        self.rule = Once(rule)
+        self.rule = ParseRule(rule)
     def parse(self,stringToParse, startingPoints = set([0])):
         return set([max(self.rule.parse(stringToParse, startingPoints))])
 Greedy = Max
@@ -298,14 +307,14 @@ Greedy = Max
 
 
 ## Special Predefined Classes
-newLine = Once("\n")
+newLine = ParseRule("\n")
 newline = newLine
 nL      = newLine
 nl      = newLine
 
 
 
-class wsc(Once):
+class wsc(ParseRule):
     def __init__(self):
         pass
     def parse(stringToParse, startingPoints = set([0])):
@@ -321,7 +330,7 @@ whitespacechar      = wsc
 
 
 
-class ws(Once):
+class ws(ParseRule):
     def __init__(self):
         pass
     def parse(stringToParse, startingPoints = set([0])):
@@ -334,7 +343,7 @@ whitespace = ws
 
 
 
-class lower(Once):
+class lower(ParseRule):
     def __init__(self):
         pass
     def parse(self,stringToParse, startingPoints = set([0])):
@@ -346,7 +355,7 @@ class lower(Once):
         return newPoints
 lower         = lower()
 lowercase     = lower
-class upper(Once):
+class upper(ParseRule):
     def __init__(self):
         pass
     def parse(self,stringToParse, startingPoints = set([0])):
@@ -361,7 +370,7 @@ upper = upper()
 uppercase = upper
 
         
-class alpha(Once):
+class alpha(ParseRule):
     def __init__(self):
         pass
     def parse(self,stringToParse, startingPoints = set([0])):
@@ -371,7 +380,7 @@ class alpha(Once):
                 newPoints.add( start + 1 )
         return newPoints
 alpha = alpha()
-class alnum(Once):
+class alnum(ParseRule):
     def __init__(self):
         pass
     def parse(self,stringToParse, startingPoints = set([0])):
@@ -383,7 +392,7 @@ class alnum(Once):
 alnum = alnum()
 alphaNum    = alnum
 alphanum    = alnum
-class digit(Once):
+class digit(ParseRule):
     def __init__(self):
         pass
     def matches(self,stringToParse):
@@ -395,7 +404,7 @@ class digit(Once):
                 newPoints.add( start + 1 )
         return newPoints
 
-class wildCard(Once):
+class wildCard(ParseRule):
     def __init__(self):
         pass
     def parse(self,stringToParse, startingPoints = set([0])):
