@@ -23,10 +23,18 @@ Matching rules have multiple functions
    
 ## Comparisons
    * == 
-     <br>&nbsp;&nbsp;&nbsp;&nbsp;True if the ruleOrString will always yield the same result as the rule when .parse() is called no matter what string is passed to .parse(). If ruleOrString is a string, it will be treated as Sequence(ruleOrString).
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;True if the self.parse(stringToParse) will always yield the same result as the rule as other.parse(stringToParse).
    * != 
    <br>&nbsp;&nbsp;&nbsp;&nbsp;Opposite of ==.
+   * <
+   <br>&nbsp;&nbsp;&nbsp;&nbsp;True if other.parse(stringToParse) will always yield atleast every result that self.parse(stringToParse) yields, but there is at least one stringToParse that self.parse(stringToParse) will not yield all the results as other.parse(stringToParse)
+   * >
+   <br>&nbsp;&nbsp;&nbsp;&nbsp;Same as < except "self" and "other" are flipped
+   * <=
+   <br>&nbsp;&nbsp;&nbsp;&nbsp;S< or ==
    
+   * >=
+   <br>&nbsp;&nbsp;&nbsp;&nbsp;S> or ==
    
 ## Operators  
    * \+
