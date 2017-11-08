@@ -5,13 +5,14 @@ Date:    Apr 11, 2017
 Updated: NOV 5,  2017
 """
 
+import itertools
 
 def simplify(rule): # TODO: simplify the ParseRule
     ptr = rule
     ptrIsSimple = True
     """Simplify the parse rule"""
-    while type(ptr) != type(""):
-        if type(ptr) == type(ParseRule()):
+    while type(ptr) != str:
+        if type(ptr) == ParseRule:
             ptr = ptr.rule
         if type(ptr) == type(Sequence()):
             ptrIsSimple = False
@@ -36,12 +37,12 @@ class ParseRule:
             self.rule = rule
     def __str__(self):
         try:
-            if type(self.rule) == type(""):
+            if type(self.rule) == str:
                 return self.parseType + "(\""+ str(self.rule) + "\")"
             else:
                 return self.parseType + "(\n"+ str(self.rule) + "\n)"
         except AttributeError:
-            return self.parseType + "("+ str(",".join(["\""+str(x)+"\"" if type(x) == type("") else str(x) for x in self.rules])) + ")"
+            return self.parseType + "("+ str(",".join(["\""+str(x)+"\"" if type(x) == str else str(x) for x in self.rules])) + ")"
     def match(self, stringToMatch):
         """returns True if the entire string matches"""
         return len(stringToMatch) in self.parse(stringToMatch)
@@ -57,7 +58,7 @@ class ParseRule:
 
 
     def parse(self, stringToParse, startingPoints = set([0])):
-        if type(self.rule) == type(""):
+        if type(self.rule) == str:
             newPoints = set()
             for start in startingPoints:
                 if start + len(self.rule) <= len(stringToParse) and stringToParse[start: start + len(self.rule)] == self.rule:
@@ -98,24 +99,24 @@ class ParseRule:
     def __ne__(self, other):
         return not self.__eq__(other)
     def __add__(self, ruleOrString):
-        if type(self) == type(Sequence()):
-            if type(ruleOrString) == type(Sequence()):
+        if type(self) == ParseRule and self.parseType == "Sequence":
+            if type(ruleOrString) == ParseRule and self.parseType == "Sequence":
                 return(Sequence(*self.rules, *ruleOrString.rules))
             else:
                 return(Sequence(*self.rules, ruleOrString))
         else:
-            if type(ruleOrString) == type(Sequence()):
+            if type(ruleOrString) == ParseRule and self.parseType == "Sequence":
                 return(Sequence(self, *ruleOrString.rules))
             else:
                 return(Sequence(self, ruleOrString))
     def __radd__(self, ruleOrString):
-        if type(self) == type(Sequence()):
-            if type(ruleOrString) == type(Sequence()):
+        if type(self) == ParseRule and self.parseType == "Sequence":
+            if type(ruleOrString) == ParseRule and self.parseType == "Sequence":
                 return(Sequence(*ruleOrString.rules, *self.rules))
             else:
                 return(Sequence(ruleOrString, *self.rules))
         else:
-            if type(ruleOrString) == type(Sequence()):
+            if type(ruleOrString) == ParseRule and self.parseType == "Sequence":
                 return(Sequence(*ruleOrString.rules, self))
             else:
                 return(Sequence(ruleOrString, self))
@@ -139,7 +140,11 @@ class ParseRule:
 
 
 def Once(rule=""):
-    return ParseRule(rule)
+    """Matches a rule exactly Once"""
+    if type(rule) == ParseRule:
+        return rule
+    else:
+        return ParseRule(rule)
         
 One = Once()
 
@@ -150,11 +155,26 @@ def Sequence(*rules):
     self = ParseRule()
     self.parseType = "Sequence"
     del self.rule
-    self.rules = [ParseRule(x) if type(x) == type("") else x for x in  rules]
 
+    tmpRules = []
+    for x in rules:
+        if type(x) == ParseRule and x.parseType == "Sequence":
+            tmpRules += x.rules
+        else:
+            tmpRules += x
+            
+    rules = [x.rule if type(x) == ParseRule and x.parseType == "Once" else x  for x in tmpRules] 
+    #https://stackoverflow.com/a/47168956/3381689
+    rules = [x for cls, grp in itertools.groupby(rules, type)
+          for x in ((''.join(grp),) if cls is str else grp)]
+            
+    if 0 <= len(rules) <= 1:
+        return Once(*rules)
+    self.rules = rules
+    
     def parse(stringToParse, startingPoints = set([0])):
         for i in self.rules:
-            startingPoints = i.parse(stringToParse, startingPoints)
+            startingPoints = Once(i).parse(stringToParse, startingPoints)
         return startingPoints
     self.parse = parse
     return self
@@ -166,37 +186,45 @@ Chain = Sequence
 #    raise NotImplemented("Not Yet Implemented")
 
 
-class Or(ParseRule):
+def Or(*rules):
     """A set of rules where atleast one choice has to match"""
     #TODO Run Equivalence Checks Before storing the rules
-    def __init__(self, *rules):
-        self.rules = [ParseRule(x) for x in  rules]
+    """A set of rules that have to be matched in order"""
+    self = ParseRule()
+    self.parseType = "Or"
+    del self.rule
+    self.rules = [ParseRule(x) if type(x) == str else x for x in  rules]
         
-    def parse(self,stringToParse, startingPoints = set([0])):
+    def parse(stringToParse, startingPoints = set([0])):
         newPoints =set()
         
         for i in self.rules:
             newPoints |= i.parse(stringToParse, startingPoints)
         return newPoints
+    self.parse = parse
+    return self
 Choice = Or
 
 
 
-class Optional(ParseRule):
+def Optional(rule):
     """A rule that is optional (matches 0 or 1 time)"""
-    def __init__(self, rule):
-        self.rule = ParseRule(rule) if type(rule) == type("") else rule
+    self = ParseRule()
+    self.parseType = "Or"
+    self.rule = ParseRule(rule) if type(rule) == str else rule
     def parse(self,stringToParse, startingPoints = set([0])):
-        return Or("", self.rule).parse(stringToParse, startingPoints)    
+        return Or("", self.rule).parse(stringToParse, startingPoints)
+    self.parse = parse
+    return self
 ZeroOrOne = Optional
 
 
     
-class OneOrMore(ParseRule):
+def OneOrMore(rule, joinRule = ""):
     """A rule that is matches 1 or more times. If more than ParseRule, joinRule is required between each match"""
-    def __init__(self, rule, joinRule = ""):
-        self.rule = ParseRule(rule)
-        self.join = ParseRule(joinRule)
+    self = ParseRule()
+    self.rule = ParseRule(rule) if type(rule) == str else rule
+    self.join = ParseRule(joinRule) if type(joinRule) == str else joinRule
 
     def parse(self,stringToParse, startingPoints = set([0])):
         startingPoints = self.rule.parse(stringToParse, startingPoints)
@@ -206,6 +234,8 @@ class OneOrMore(ParseRule):
             newPoints |= startingPoints
             
         return newPoints
+    self.parse = parse
+    return self
 
 
 
