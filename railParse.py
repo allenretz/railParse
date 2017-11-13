@@ -6,36 +6,36 @@ Updated: NOV 5,  2017
 """
 
 import itertools
+import warnings
 
-def simplify(rule): # TODO: simplify the ParseRule
+def simplify(rule): # TODO: simplify the _railParse
     ptr = rule
     ptrIsSimple = True
     """Simplify the parse rule"""
     while type(ptr) != str:
-        if type(ptr) == ParseRule:
+        if type(ptr) == _railParse:
             ptr = ptr.rule
         if type(ptr) == type(Sequence()):
             ptrIsSimple = False
             
-    return ParseRule(ptr)
+    return _railParse(ptr)
 
 ## TODO: \/\/\/\/\/
 ## TODO:  \/\/\/\/
-## TODO:   DON'T CALL ParseRule FOR EVERY SINGLE CALL !!!!
+## TODO:   DON'T CALL _railParse FOR EVERY SINGLE CALL !!!!
 ## TODO:  /\/\/\/\
 ## TODO: /\/\/\/\/\
 
 ## MATCHING RULES
 
-class ParseRule:
-    """Matches the rule exactly ParseRule
-       This is the base Parse Rule and
-       is called and inherrited by others"""
+class _railParse:
+    """Internal Class Used to Match Parse Rules"""
     #TODO: Allow Regex and File input as well
     def __init__(self, rule=""):
             self.parseType = "Once"
             self.rule = rule
     def __str__(self):
+        warnings.warn("Not Fully Implemented! Results may not be accurate")
         try:
             if type(self.rule) == str:
                 return self.parseType + "(\""+ str(self.rule) + "\")"
@@ -58,6 +58,7 @@ class ParseRule:
 
 
     def parse(self, stringToParse, startingPoints = set([0])):
+        """returns a set of all points that match the rule """
         if type(self.rule) == str:
             newPoints = set()
             for start in startingPoints:
@@ -65,7 +66,13 @@ class ParseRule:
                     newPoints.add(start + len(self.rule))
             return newPoints;
         else:
-            return self.rule.parse(stringToParse, startingPoints)
+            typ = type(self.rule).__name__
+            try:
+                return self.rule.parse(stringToParse, startingPoints)
+            except AttributeError:
+                pass
+            raise TypeError('"' + typ + '" can not be converted into railParse')
+        
 
     def simplify(self):
         __doc__ = simplify.__doc__
@@ -79,7 +86,7 @@ class ParseRule:
         raise NotImplemented
 
     def toRegex(outputType = "Regex"):
-        """Converts the ParseRule to a regex.Pattern or String"""
+        """Converts the _railParse to a regex.Pattern or String"""
         raise NotImplemented("Not Yet Implemted")
 
 
@@ -87,11 +94,14 @@ class ParseRule:
 
 
     def __eq__(self, other):
+        warnings.warn("Not Fully Implemented! Results may not be accurate")
         return True if self.simplify().rule == other.simplify().rule else False
     def __lt__(self, other):
-        raise NotImplemented
+        warnings.warn("Not Fully Implemented! Results may not be accurate")
+        return False
     def __gt__(self, other):
-        raise NotImplemented
+        warnings.warn("Not Fully Implemented! Results may not be accurate")
+        return False
     def __ge__(self, other):
         return self.__gt__(other) or self.__eq__(other)
     def __le__(self, other):
@@ -99,24 +109,24 @@ class ParseRule:
     def __ne__(self, other):
         return not self.__eq__(other)
     def __add__(self, ruleOrString):
-        if type(self) == ParseRule and self.parseType == "Sequence":
-            if type(ruleOrString) == ParseRule and self.parseType == "Sequence":
+        if type(self) == _railParse and self.parseType == "Sequence":
+            if type(ruleOrString) == _railParse and self.parseType == "Sequence":
                 return(Sequence(*self.rules, *ruleOrString.rules))
             else:
                 return(Sequence(*self.rules, ruleOrString))
         else:
-            if type(ruleOrString) == ParseRule and self.parseType == "Sequence":
+            if type(ruleOrString) == _railParse and self.parseType == "Sequence":
                 return(Sequence(self, *ruleOrString.rules))
             else:
                 return(Sequence(self, ruleOrString))
     def __radd__(self, ruleOrString):
-        if type(self) == ParseRule and self.parseType == "Sequence":
-            if type(ruleOrString) == ParseRule and self.parseType == "Sequence":
+        if type(self) == _railParse and self.parseType == "Sequence":
+            if type(ruleOrString) == _railParse and self.parseType == "Sequence":
                 return(Sequence(*ruleOrString.rules, *self.rules))
             else:
                 return(Sequence(ruleOrString, *self.rules))
         else:
-            if type(ruleOrString) == ParseRule and self.parseType == "Sequence":
+            if type(ruleOrString) == _railParse and self.parseType == "Sequence":
                 return(Sequence(*ruleOrString.rules, self))
             else:
                 return(Sequence(ruleOrString, self))
@@ -141,10 +151,10 @@ class ParseRule:
 
 def Once(rule=""):
     """Matches a rule exactly Once"""
-    if type(rule) == ParseRule:
+    if type(rule) == _railParse:
         return rule
     else:
-        return ParseRule(rule)
+        return _railParse(rule)
         
 One = Once()
 
@@ -152,18 +162,19 @@ One = Once()
 
 def Sequence(*rules):
     """A set of rules that have to be matched in order"""
-    self = ParseRule()
+    self = _railParse()
     self.parseType = "Sequence"
     del self.rule
 
+
     tmpRules = []
     for x in rules:
-        if type(x) == ParseRule and x.parseType == "Sequence":
-            tmpRules += x.rules
+        if type(x) == _railParse and x.parseType == "Sequence":
+            tmpRules.append(*x.rules)
         else:
-            tmpRules += x
+            tmpRules.append(x)
             
-    rules = [x.rule if type(x) == ParseRule and x.parseType == "Once" else x  for x in tmpRules] 
+    rules = [x.rule if type(x) == _railParse and x.parseType == "Once" else x  for x in tmpRules] 
     #https://stackoverflow.com/a/47168956/3381689
     rules = [x for cls, grp in itertools.groupby(rules, type)
           for x in ((''.join(grp),) if cls is str else grp)]
@@ -181,7 +192,7 @@ def Sequence(*rules):
 Chain = Sequence
 
 
-#class And(ParseRule):
+#class And(_railParse):
 #    """A set of rules that all have to match in order for characters to be added"""
 #    raise NotImplemented("Not Yet Implemented")
 
@@ -190,16 +201,16 @@ def Or(*rules):
     """A set of rules where atleast one choice has to match"""
     #TODO Run Equivalence Checks Before storing the rules
     """A set of rules that have to be matched in order"""
-    self = ParseRule()
+    self = _railParse()
     self.parseType = "Or"
     del self.rule
-    self.rules = [ParseRule(x) if type(x) == str else x for x in  rules]
+    self.rules = rules
         
     def parse(stringToParse, startingPoints = set([0])):
         newPoints =set()
         
         for i in self.rules:
-            newPoints |= i.parse(stringToParse, startingPoints)
+            newPoints |= Once(i).parse(stringToParse, startingPoints)
         return newPoints
     self.parse = parse
     return self
@@ -209,11 +220,11 @@ Choice = Or
 
 def Optional(rule):
     """A rule that is optional (matches 0 or 1 time)"""
-    self = ParseRule()
-    self.parseType = "Or"
-    self.rule = ParseRule(rule) if type(rule) == str else rule
-    def parse(self,stringToParse, startingPoints = set([0])):
-        return Or("", self.rule).parse(stringToParse, startingPoints)
+    self = _railParse()
+    self.parseType = "Optional"
+    self.rule = rule
+    def parse(stringToParse, startingPoints = set([0])):
+        return Or("", Once(self.rule)).parse(stringToParse, startingPoints)
     self.parse = parse
     return self
 ZeroOrOne = Optional
@@ -221,130 +232,168 @@ ZeroOrOne = Optional
 
     
 def OneOrMore(rule, joinRule = ""):
-    """A rule that is matches 1 or more times. If more than ParseRule, joinRule is required between each match"""
-    self = ParseRule()
-    self.rule = ParseRule(rule) if type(rule) == str else rule
-    self.join = ParseRule(joinRule) if type(joinRule) == str else joinRule
+    """A rule that is matches 1 or more times. If more than _railParse, joinRule is required between each match"""
+    self = _railParse()
+    self.rule = rule
+    self.join = joinRule
+    self.parseType = "OneOrMore"
 
-    def parse(self,stringToParse, startingPoints = set([0])):
-        startingPoints = self.rule.parse(stringToParse, startingPoints)
+    def parse(stringToParse, startingPoints = set([0])):
+        startingPoints = Once(self.rule).parse(stringToParse, startingPoints)
         newPoints = set() | startingPoints
         while startingPoints != set():
             startingPoints = Chain(self.join, self.rule).parse(stringToParse, startingPoints)
             newPoints |= startingPoints
             
         return newPoints
+    
     self.parse = parse
     return self
 
 
 
-class ZeroOrMore(ParseRule):
-    """A rule that matches 0 or more times. If more than ParseRule, joinRule is required between each match"""
-    def __init__(self, rule, joinRule = ""):
-        self.rule = ParseRule(rule)
-        self.join = ParseRule(joinRule)
+def ZeroOrMore(rule, joinRule=""):
+    """A rule that matches 0 or more times. If more than _railParse, joinRule is required between each match"""
+    self = _railParse()
+    self.rule = rule
+    self.join = joinRule
+    self.parseType = "ZeroOrMore"
 
-    def parse(self,stringToParse, startingPoints = set([0])):
+    def parse(stringToParse, startingPoints = set([0])):
         return Or("", OneOrMore(self.rule, self.join)).parse(stringToParse, startingPoints)
 
+    self.parse = parse
+    return self
 
 
-class Next(ParseRule):
+
+def Next(rule):
     """'Positive Look Ahead' -- A rule that checks the next characters and determines if it matches"""
-    def __init__(self, rule):
-        self.rule = ParseRule(rule)
-    def parse(self,stringToParse, startingPoints = set([0])):
+    self = _railParse()
+    self.rule = rule
+    self.parseType = "Next"
+    def parse(stringToParse, startingPoints = set([0])):
         newPoints = set()
         for start in startingPoints:
-            if self.rule.parse(stringToParse, set([start])) != set():
+            if Once(self.rule).parse(stringToParse, set([start])) != set():
                 newPoints.add(start)
         return newPoints
+
+    self.parse = parse
+    return self
 LookAhead = Next
 
 
 
-class NotNext(ParseRule):
+def NotNext(rule): #FIX
     """'Negative Look Ahead' -- A rule that checks the next characters in the string and determines if it doesn't match"""
-    def __init__(self, rule):
-        self.rule = ParseRule(rule)
-    def parse(self,stringToParse, startingPoints = set([0])):
+    self = _railParse()
+    self.rule = Once(rule)
+    self.parseType = "NotNext"
+    def parse(stringToParse, startingPoints = set([0])):
         newPoints = set()
         for start in startingPoints:
             if self.rule.parse(stringToParse, set([start])) == set():
                 newPoints.add(start)
         return newPoints
 
+    self.parse = parse
+    return self
 
 
-class Previous(ParseRule): #TODO FIX ????( Not Sure If This Needs Fixing)
+
+def Previous(rule): #FIX
     """'Positive Look Behind' -- starts at the beginning and removes previous matches that don't match this"""
-    def __init__(self, rule):
-        self.rule = ParseRule(rule)
-    def parse(self, stringToParse, startingPoints = set([0])):
-        return( startingPoints & Sequence(ZeroOrMore(wild), self.rule).parse(stringToParse) )    
+    self = _railParse()
+    self.rule = Once(rule)
+    self.parseType = "Previous"
+    def parse(stringToParse, startingPoints = set([0])):
+        return( startingPoints & Sequence(ZeroOrMore(wild), self.rule).parse(stringToParse) )
+
+    self.parse = parse
+    return self
 LookBehind = Previous
 
 
 
-class NotPrevious(ParseRule): 
+def NotPrevious(rule):#CHECK
     """'Negative Look Behind' -- starts at the beginning and removes previous matches that also match this"""
-    def __init__(self, rule):
-        self.rule = ParseRule(rule)
-    def parse(self, stringToParse, startingPoints = set([0])):
+    self = _railParse()
+    self.rule = Once(rule)
+    self.parseType = "NotPrevious"
+    def parse(stringToParse, startingPoints = set([0])):
         return( startingPoints - Sequence(ZeroOrMore(wild), self.rule).parse(stringToParse) )
+    
+    self.parse = parse
+    return self
 
 
     
-class FindStart(ParseRule):
+def FindStart(rule):#CHECK
     """If a rule matches any substring(s) of the text, all possible starting points will be returned"""
-    def __init__(self, rule):
-        self.rule = ParseRule(rule)
-    def parse(self,stringToParse, startingPoints = set([0])):
+    self = _railParse()
+    self.rule = Once(rule)
+    self.parseType = "FindStart"
+    def parse(stringToParse, startingPoints = set([0])):
         return Chain(ZeroOrMore(wild), Next(self.rule)).parse(stringToParse)
+
+    self.parse = parse
+    return self
 
 
         
-class FindEnd(ParseRule): #TODO CHECK
+def FindEnd(rule): #CHECK
     """If a rule matches any substring(s) of the text, all possible ending points will be returned"""
-    def __init__(self, rule):
-        self.rule = ParseRule(rule)
-    def parse(self,stringToParse, startingPoints = set([0])):
+    self = _railParse()
+    self.rule = Once(rule)
+    self.parseType = "FindEnd"
+    def parse(stringToParse, startingPoints = set([0])):
         return Chain(ZeroOrMore(wild), self.rule).parse(stringToParse)
+    
+    self.parse = parse
+    return self
 
 
 
     
-class Min(ParseRule):
+def Min(rule): #CHECK
     """'lazy' - get the ending point of the earliest match. DIFFERENT FROM REGEX"""
-    def __init__(self, rule=""):
-        self.rule = ParseRule(rule)
-    def parse(self,stringToParse, startingPoints = set([0])):
+    self = _railParse()
+    self.rule = Once(rule)
+    self.parseType = "Min"
+    def parse(stringToParse, startingPoints = set([0])):
         return set([min(self.rule.parse(stringToParse, startingPoints))])
+
+    self.parse = parse
+    return self
 Lazy = Min
 
 
 
-class Max(ParseRule):
+def Max(rule): #CHECK
     """'greedy' - Get the ending point of the latest match. DIFFERENT FROM REGEX"""
-    def __init__(self, rule=""):
-        self.rule = ParseRule(rule)
-    def parse(self,stringToParse, startingPoints = set([0])):
+    self = _railParse()
+    self.rule = Once(rule)
+    self.parseType = "Max"
+    def parse(stringToParse, startingPoints = set([0])):
         return set([max(self.rule.parse(stringToParse, startingPoints))])
+    
+    self.parse = parse
+    return self
 Greedy = Max
     
     
 
 
 ## Special Predefined Classes
-newLine = ParseRule("\n")
+newLine = _railParse("\n")
 newline = newLine
 nL      = newLine
 nl      = newLine
 
 
 
-class wsc(ParseRule):
+class wsc(_railParse): #CHECK
     def __init__(self):
         pass
     def parse(stringToParse, startingPoints = set([0])):
@@ -360,7 +409,7 @@ whitespacechar      = wsc
 
 
 
-class ws(ParseRule):
+class ws(_railParse):#CHECK
     def __init__(self):
         pass
     def parse(stringToParse, startingPoints = set([0])):
@@ -373,7 +422,7 @@ whitespace = ws
 
 
 
-class lower(ParseRule):
+class lower(_railParse):#CHECK
     def __init__(self):
         pass
     def parse(self,stringToParse, startingPoints = set([0])):
@@ -385,7 +434,7 @@ class lower(ParseRule):
         return newPoints
 lower         = lower()
 lowercase     = lower
-class upper(ParseRule):
+class upper(_railParse):#CHECK
     def __init__(self):
         pass
     def parse(self,stringToParse, startingPoints = set([0])):
@@ -400,7 +449,7 @@ upper = upper()
 uppercase = upper
 
         
-class alpha(ParseRule):
+class alpha(_railParse):#CHECK
     def __init__(self):
         pass
     def parse(self,stringToParse, startingPoints = set([0])):
@@ -410,7 +459,7 @@ class alpha(ParseRule):
                 newPoints.add( start + 1 )
         return newPoints
 alpha = alpha()
-class alnum(ParseRule):
+class alnum(_railParse):#CHECK
     def __init__(self):
         pass
     def parse(self,stringToParse, startingPoints = set([0])):
@@ -422,7 +471,7 @@ class alnum(ParseRule):
 alnum = alnum()
 alphaNum    = alnum
 alphanum    = alnum
-class digit(ParseRule):
+class digit(_railParse):#CHECK
     def __init__(self):
         pass
     def matches(self,stringToParse):
@@ -434,11 +483,12 @@ class digit(ParseRule):
                 newPoints.add( start + 1 )
         return newPoints
 
-class wildCard(ParseRule):
+class wildCard(_railParse):#CHECK
     def __init__(self):
         pass
     def parse(self,stringToParse, startingPoints = set([0])):
         """matches any single character"""
+        newPoints = set([])
         for start in startingPoints:
             if start < len(stringToParse):
                 newPoints.add( start + 1 )
@@ -450,9 +500,10 @@ wildChar     = wildCard
 wildchar     = wildCard
 wildCardChar = wildCard
 wildcardchar = wildCard
+wild         = wildCard
 
 
-class exclude:
+class exclude:#CHECK
     def __init__(self, excludeChars=""):
         """exclusive wild card"""
         self.exclude= excludeChars
@@ -471,7 +522,41 @@ if __name__ == "__main__":
     success  = True
     failedAt = []
     print("Running Tests...")
+    try:
+        ## SIMPLE TEST CASES
+        success &= Once("A").match("A")
+        success &= not Once("A").match("")
+        success &= Once("MULTIPLE CHARS").match("MULTIPLE CHARS")
+        success &= Sequence("A").match("A")
+        success &= not Sequence("A").match("")
+        success &= Sequence("M", "U", "L", "T", "IP", "LE CHARS").match("MULTIPLE CHARS")
+        success &= Or("A").match("A")
+        success &= Or("A", "BA").match("BA")
+        success &= not Or("A", "B").match("")
+        #success &= AND(...
+        success &= Optional("A").match("A")
+        success &= Optional("AB").match("")
+        success &= OneOrMore("A").match("A")
+        success &= OneOrMore("AB").match("ABABABABAB")
+        success &= OneOrMore("AB", ", ").match("AB, AB, AB, AB, AB")
+        success &= ZeroOrMore("A").match("A")
+        success &= ZeroOrMore("A").match("AA")
+        success &= ZeroOrMore("A").match("")
+        success &= ZeroOrMore("AB").match("ABABABABAB")
+        success &= ZeroOrMore("AB", ", ").match("AB, AB, AB, AB, AB")
+        success &= Next("A").parse("bA", set([1])) == set([1])
+        success &= Next("A").parse("bA", set([1])) == set([1])
+        success &= NotNext("A").parse("bD", set([1])) == set([1])
+        success &= NotNext("A").parse("bA", set([1])) == set()
+        #success &= NotNext("AD").parse("bA", set([1])) == set()
+        #success &= Previous("A").parse("Ab", set([1])) == set([1])
+        
+
+        ## COMPLEX TEST CASES
+    except:
+        success = False
+    
     if success:
         print("Tests Completed Successfully")
     else:
-        print("Failed Some Tests")
+        print("Failed One Or More Tests")
