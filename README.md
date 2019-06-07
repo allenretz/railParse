@@ -1,6 +1,10 @@
 # railParse
 This is an alternative to regex with the goal being human readability / comprehension instead of limiting the number of characters typed.
 
+## Status of This Project
+Unfinished and On Hold. This project is not finished and is currently not being further developed at this time. Work on this project should resume at a later date.
+
+
 ## Matching Rules
 Matching rules may be combined to create more complex rules
 Matching rules have multiple functions
